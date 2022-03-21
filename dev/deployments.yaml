@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  name: gorest
+spec:
+  selector:
+    matchLabels:
+      app: gorest
+  replicas: 1
+  template: #template for the pods
+    metadata:
+      labels:
+        app: gorest
+    spec:
+      containers:
+      - name: gorest
+        image: madwick/go-rest:release1
+        env:
+        - name: API_URL
+          value: https://api.publicapis.org
+        - name: DB_USER
+          value: postgres
+        - name: DB_PASS
+          value: password
+        - name: DB_NAME
+          value: postgres
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_HOST
+          value: gorest-db
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        command: ["./wait-for-postgres.sh"]
+        args: ["gorest-db", "./main"]
+
+---
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  name: db
+spec:
+  selector:
+    matchLabels:
+      app: db 
+  replicas: 1 
+  template: #template for the pods
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: gorest-db
+        image:  postgres:14.1-alpine
+        env:
+        - name: POSTGRES_USER 
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          value: password
+        ports: 
+        - containerPort: 5432
+        volumeMounts:
+        - name: db
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: db
+        emptyDir: {}  
